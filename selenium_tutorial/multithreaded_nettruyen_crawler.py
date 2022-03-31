@@ -10,7 +10,6 @@ from selenium.webdriver.common.by import By
 from seleniumwire import webdriver
 from slugify import slugify
 
-
 class MultiThreadedNettruyenCrawler:
     def __init__(self):
         self.seed_url = "http://www.nettruyenone.com/"
@@ -44,6 +43,7 @@ class MultiThreadedNettruyenCrawler:
             self.crawl_queue.put(a.get_attribute("href"))
 
         Browser.quit()
+
     def get_poster(self, browser, comic_path):
         # Get poster picture of comic
         comic_poster = browser.find_element(
@@ -53,22 +53,25 @@ class MultiThreadedNettruyenCrawler:
         time.sleep(10)
 
     def get_chapter_of_comic(self, browser):
-        crawl_queue_chapter = []
+        #Click button "xem thêm"
+        view_more = browser.find_element(By.CLASS_NAME, "view-more")
+        view_more.click()
+        time.sleep(10)
+
         chapters = browser.find_elements(
-            By.XPATH, '//*[@id="nt_listchapter"]/nav/ul/li/div/a')
+            By.XPATH, '//*[@id="nt_listchapter"]/nav/ul/li/div[1]/a')
+        
+        time.sleep(1)
+        crawl_queue_chapter = []
 
         for element in chapters:
-            crawl_queue_chapter.append(
-                {
-                    "chap_name": element.text,
-                    "chap_link": element.get_attribute("href")
-                }
-            )
+            print(element.text, element.get_attribute("href"))
+            crawl_queue_chapter.append({
+                "chap_name": element.text,
+                "chap_link": element.get_attribute("href")
+            })
 
         return crawl_queue_chapter
-
-    def get_slug(self, comic_name):
-        return slugify(comic_name)
 
     def create_folder(self, name_folder):
         isExistDir = os.path.exists(name_folder)
@@ -80,10 +83,9 @@ class MultiThreadedNettruyenCrawler:
     def save_img(self, urlImg, idx, comic_path_chap):
         hostImg = urlparse(urlImg).netloc
         self.headers_dict["Host"] = hostImg
-
         try:
             response = requests.get(
-                urlImg, headers=self.headers_dict, stream=True, timeout=(3, 30))
+                urlImg, headers=self.headers_dict, stream=True)
 
             if response.status_code == 200:
                 name_of_img = (5-len(str(idx))) * "0" + str(idx)
@@ -98,48 +100,40 @@ class MultiThreadedNettruyenCrawler:
     def scrape_comic(self, comic_link):
         # Go to comic source
         Browser = self.browser(comic_link)
-        time.sleep(random.randint(10, 15))
+        time.sleep(10)
 
         # Get name of comic
         comic_name = Browser.find_element(By.CLASS_NAME, "title-detail")
-        time.sleep(5)
-
         # Slugify comic name
-        comic_name_slug = self.get_slug(comic_name.text)
-
-        #Generate comic path
+        comic_name_slug = slugify(comic_name.text)
+        # Generate comic path
         comic_path = os.getcwd()+f"\\{comic_name_slug}\\"
         time.sleep(10)
 
         self.create_folder(comic_path)
         self.get_poster(Browser, comic_path)
-
-        #Click button "xem thêm"
-        view_more = Browser.find_element(By.CLASS_NAME, "view-more")
-        view_more.click()
-        time.sleep(10)
-
+        
         crawl_queue_chapter = self.get_chapter_of_comic(Browser)
 
-        for chapter in crawl_queue_chapter:
+        for index, chapter in enumerate(crawl_queue_chapter):
+            # comic_path_chap = comic_path + slugify(chapter["chap_name"]) + "\\"
             comic_path_chap = comic_path + slugify(chapter["chap_name"]) + "\\"
+            time.sleep(10)
+
             self.create_folder(comic_path_chap)
 
-            #Load chap of comic
+            # Browser.get(chapter["chap_link"])
             Browser.get(chapter["chap_link"])
             time.sleep(15)
-            
-            #Find pages of chapter
+
             page_chapters = Browser.find_elements(
                 By.CLASS_NAME, 'page-chapter')
-            time.sleep(5)
+            time.sleep(1)
 
-            idx = 0
-            for page in page_chapters:
+            for idx, page in enumerate(page_chapters):
                 urlImg = page.find_element(
                     By.TAG_NAME, 'img').get_attribute("src")
                 self.save_img(urlImg, idx, comic_path_chap)
-                idx += 1
 
         time.sleep(random.randint(1, 10))
 
