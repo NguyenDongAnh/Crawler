@@ -98,47 +98,51 @@ class MultiThreadedNettruyenCrawler:
             return
 
     def scrape_comic(self, comic_link):
-        # Go to comic source
-        Browser = self.browser(comic_link)
-        time.sleep(10)
-
-        # Get name of comic
-        comic_name = Browser.find_element(By.CLASS_NAME, "title-detail")
-        # Slugify comic name
-        comic_name_slug = slugify(comic_name.text)
-        # Generate comic path
-        comic_path = os.getcwd()+f"\\{comic_name_slug}\\"
-        time.sleep(10)
-
-        self.create_folder(comic_path)
-        self.get_poster(Browser, comic_path)
-        
-        crawl_queue_chapter = self.get_chapter_of_comic(Browser)
-
-        for index, chapter in enumerate(crawl_queue_chapter):
-            # comic_path_chap = comic_path + slugify(chapter["chap_name"]) + "\\"
-            comic_path_chap = comic_path + slugify(chapter["chap_name"]) + "\\"
+        try:
+            # Go to comic source
+            Browser = self.browser(comic_link)
             time.sleep(10)
 
-            self.create_folder(comic_path_chap)
+            # Get name of comic
+            comic_name = Browser.find_element(By.CLASS_NAME, "title-detail")
+            # Slugify comic name
+            comic_name_slug = slugify(comic_name.text)
+            # Generate comic path
+            comic_path = os.getcwd()+f"\\{comic_name_slug}\\"
+            time.sleep(10)
 
-            # Browser.get(chapter["chap_link"])
-            Browser.get(chapter["chap_link"])
-            time.sleep(15)
+            self.create_folder(comic_path)
+            self.get_poster(Browser, comic_path)
+        
+            crawl_queue_chapter = self.get_chapter_of_comic(Browser)
 
-            page_chapters = Browser.find_elements(
-                By.CLASS_NAME, 'page-chapter')
-            time.sleep(1)
+            for index, chapter in enumerate(crawl_queue_chapter):
+                # comic_path_chap = comic_path + slugify(chapter["chap_name"]) + "\\"
+                comic_path_chap = comic_path + slugify(chapter["chap_name"]) + "\\"
+                time.sleep(10)
 
-            for idx, page in enumerate(page_chapters):
-                urlImg = page.find_element(
-                    By.TAG_NAME, 'img').get_attribute("src")
-                self.save_img(urlImg, idx, comic_path_chap)
+                self.create_folder(comic_path_chap)
 
-        time.sleep(random.randint(1, 10))
+                # Browser.get(chapter["chap_link"])
+                Browser.get(chapter["chap_link"])
+                time.sleep(30)
 
-        Browser.quit()
+                page_chapters = Browser.find_elements(
+                    By.CLASS_NAME, 'page-chapter')
+                time.sleep(1)
 
+                for idx, page in enumerate(page_chapters):
+                    urlImg = page.find_element(
+                        By.TAG_NAME, 'img').get_attribute("src")
+                    self.save_img(urlImg, idx, comic_path_chap)
+
+            time.sleep(random.randint(1, 10))
+
+            Browser.quit()
+        except:
+            Browser.quit()
+            return
+    
     # def post_scrape_callback(self):
 
     def run(self):
@@ -160,7 +164,10 @@ class MultiThreadedNettruyenCrawler:
                 print(e)
                 continue
 
-
 if __name__ == '__main__':
     crawler = MultiThreadedNettruyenCrawler()
     crawler.run()
+
+# This crawler developed based on article: https://www.geeksforgeeks.org/multithreaded-crawler-in-python/
+# The website which crawler scrape is protected by cloudflare, so it restricts some HTTP library make HTTP requests 
+# to get content of websites due to i will use selenium in order to simulate human actions iteract with websites
