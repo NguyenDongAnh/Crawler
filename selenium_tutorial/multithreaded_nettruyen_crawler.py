@@ -101,7 +101,7 @@ class MultiThreadedNettruyenCrawler:
         try:
             # Go to comic source
             Browser = self.browser(comic_link)
-            time.sleep(10)
+            time.sleep(30)
 
             # Get name of comic
             comic_name = Browser.find_element(By.CLASS_NAME, "title-detail")
@@ -125,7 +125,7 @@ class MultiThreadedNettruyenCrawler:
 
                 # Browser.get(chapter["chap_link"])
                 Browser.get(chapter["chap_link"])
-                time.sleep(30)
+                time.sleep(10)
 
                 page_chapters = Browser.find_elements(
                     By.CLASS_NAME, 'page-chapter')
